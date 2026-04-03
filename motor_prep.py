@@ -3,10 +3,14 @@ import sys
 import time
 import traceback
 
-PIN_MOTORR_LEGA = 1 # Motor Right Leg A
-PIN_MOTORR_LEGB = 2 # Motor Right Leg B
-PIN_MOTORL_LEGA = 3 # Motor Left Leg A
-PIN_MOTORL_LEGB = 4 # Motor Left Leg B
+# Robot Constants
+RIGHT_MOTOR_PIN_A = 1
+RIGHT_MOTOR_PIN_B = 2
+LEFT_MOTOR_PIN_A = 3
+LEFT_MOTOR_PIN_B = 4
+
+# Driving Goal Constants
+ONE_METER_TIME = 10 # seconds
 
 class Motor:
 	def __init__(self, io, pinA, pinB):			
@@ -39,47 +43,51 @@ class Robot:
 		print("Motors ready...")
 		
 	def stop_motors(self):
-		motorR.off()
-		motorL.off()
+		self.motorR.off()
+		self.motorL.off()
 	
-	def forward(self, dt, speed):
-		start_time = time.time()
+	# def forward(self, dt, speed):
+	# 	start_time = time.time()
 
-		while (time.time() - start_time) < dt:
-			# move robot forward 1 m by setting the dutycycle of both motor's pinA to be greater than pinB
+	# 	while (time.time() - start_time) < dt:
+	# 		# move robot forward 1 m by setting the dutycycle of both motor's pinA to be greater than pinB
 		
-		stop_motors()
+	# 	stop_motors()
 		
-	def right_turn(self, deg):
-		# turn robot right by setting diff in left motor's pin to be greater than right motor's pin
+	# def right_turn(self, deg):
+	# 	# turn robot right by setting diff in left motor's pin to be greater than right motor's pin
 
-		stop_motors()
+	# 	stop_motors()
 
 	
-	def square(self):
-		for i in range(4):
-			forward(ONE_METER_TIME, 1.0)
-			right(90)
+	# def square(self):
+	# 	for i in range(4):
+	# 		forward(ONE_METER_TIME, 1.0)
+	# 		right(90)
 	
-ONE_METER_TIME = # constant
-
-motorR = Motor()
-motorL = Motor()
-crab = Robot(motorR, motorL)
-
-crab.forward(ONE_METER_TIME, 1.0)
-crab.right_turn()
-crab.square()
 
 if __name__ == "main":
 	# Prepare the GPIO interface/connection (to command the motors).
 	print("Setting up the GPIO...")
 	io = pigpio.pi()
 	if not io.connected:
-	print("Unable to connection to pigpio daemon!")
-	sys.exit(0)
+		print("Unable to connection to pigpio daemon!")
+		sys.exit(0)
 	print("GPIO ready...")
 
-	# Set up the four pins as output (commanding the motors).
+	# Robot setup
+	motorR = Motor(io, RIGHT_MOTOR_PIN_A, RIGHT_MOTOR_PIN_B)
+	motorL = Motor(io, LEFT_MOTOR_PIN_A, LEFT_MOTOR_PIN_B)
+	crab = Robot(motorR, motorL)
 
+	try:
+		crab.forward(ONE_METER_TIME, 1.0)
+		crab.right_turn()
+		crab.square()
+	except BaseException as ex:
+		# Report the error, but continue with the normal shutdown.
+		print("Ending due to exception: %s" % repr(ex))
+		traceback.print_exc()
+	
+	crab.stop_motors()
 	
