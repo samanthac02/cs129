@@ -4,90 +4,93 @@ import time
 import traceback
 
 # Robot Constants
-RIGHT_MOTOR_PIN_A = 1
-RIGHT_MOTOR_PIN_B = 2
-LEFT_MOTOR_PIN_A = 3
-LEFT_MOTOR_PIN_B = 4
-
-# Driving Goal Constants
-ONE_METER_TIME = 10 # seconds
+RIGHT_MOTOR_PIN_A = 7
+RIGHT_MOTOR_PIN_B = 8
+LEFT_MOTOR_PIN_A = 6
+LEFT_MOTOR_PIN_B = 5
 
 class Motor:
-	def __init__(self, io, pinA, pinB):			
-		self.pinA = pinA
-		self.pinB = pinB
+    def __init__(self, io, pinA, pinB):         
+        self.io = io
+        self.pinA = pinA
+        self.pinB = pinB
+    
+        self.io.set_mode(self.pinA, pigpio.OUTPUT)
+        self.io.set_mode(self.pinB, pigpio.OUTPUT)
+        self.io.set_PWM_frequency(self.pinA, 1000)
+        self.io.set_PWM_frequency(self.pinB, 1000)
+        self.io.set_PWM_range(self.pinA, 255)
+        self.io.set_PWM_range(self.pinB, 255)
+        self.io.set_PWM_dutycycle(self.pinA, 255)
+        self.io.set_PWM_dutycycle(self.pinB, 255)
 
-		io.set_mode(pinA, pigpio.OUTPUT)
-		io.set_mode(pinB, pigpio.OUTPUT)
-		io.set_PWM_frequency(pinA, 1000)
-		io.set_PWM_frequency(pinB, 1000)
-		io.set_PWM_range(self.pinA, 255)
-		io.set_PWM_range(self.pinB, 255)
-		
-	def off(self):
-		io.set_PWM_dutycycle(self.pinA, 0)
-		io.set_PWM_dutycycle(self.pinB, 0)
-		io.set_PWM_range(self.pinA, 0)
-		io.set_PWM_range(self.pinB, 0)
-	
-	# level is in between -1.0 and 1.0
-	def setlevel(self, level):
-		io.set_PWM_range(self.pinA, level * 255)
-		io.set_PWM_range(self.pinB, level * 255)
-	
+    def set_level(self, level):
+        if level < 0:
+            self.io.set_PWM_dutycycle(self.pinA, 255 + (level * 255))
+            self.io.set_PWM_dutycycle(self.pinB, 255)
+        else:
+            self.io.set_PWM_dutycycle(self.pinA, 255)
+            self.io.set_PWM_dutycycle(self.pinB, 255 - (level * 255))
+
+    def off(self):
+        print("Turning off")
+        self.io.set_PWM_dutycycle(self.pinA, 0)
+        self.io.set_PWM_dutycycle(self.pinB, 0)
+    
 class Robot:
-	def __init__(self, motorR, motorL):
-		self.motorR = motorR
-		self.motorL = motorL
+    def __init__(self, leftMotor, rightMotor):
+        self.leftMotor = leftMotor
+        self.rightMotor = rightMotor
+    
+    def forward(self, rightSpeed, leftSpeed, seconds):
+        self.leftMotor.set_level(leftSpeed)
+        self.rightMotor.set_level(-1 * rightSpeed)
+        time.sleep(seconds)
 
-		print("Motors ready...")
-		
-	def stop_motors(self):
-		self.motorR.off()
-		self.motorL.off()
-	
-	# def forward(self, dt, speed):
-	# 	start_time = time.time()
+        self.stop_motors(1)
 
-	# 	while (time.time() - start_time) < dt:
-	# 		# move robot forward 1 m by setting the dutycycle of both motor's pinA to be greater than pinB
-		
-	# 	stop_motors()
-		
-	# def right_turn(self, deg):
-	# 	# turn robot right by setting diff in left motor's pin to be greater than right motor's pin
+    def turn(self, seconds):
+        self.leftMotor.io.set_PWM_dutycycle(self.leftMotor.pinA, 255)
+        self.leftMotor.io.set_PWM_dutycycle(self.leftMotor.pinB, 100)
+        time.sleep(seconds)
 
-	# 	stop_motors()
+        self.stop_motors(1)
 
-	
-	# def square(self):
-	# 	for i in range(4):
-	# 		forward(ONE_METER_TIME, 1.0)
-	# 		right(90)
-	
+    def stop_motors(self, seconds):
+        self.leftMotor.off()
+        self.rightMotor.off()
+        time.sleep(seconds)
 
-if __name__ == "main":
+if __name__ == "__main__":
 	# Prepare the GPIO interface/connection (to command the motors).
-	print("Setting up the GPIO...")
-	io = pigpio.pi()
-	if not io.connected:
-		print("Unable to connection to pigpio daemon!")
-		sys.exit(0)
-	print("GPIO ready...")
+    print("Setting up the GPIO...")
+    io = pigpio.pi()
+    if not io.connected:
+        print("Unable to connect to pigpio daemon!")
+        sys.exit(0)
+    print("GPIO ready...")
 
 	# Robot setup
-	motorR = Motor(io, RIGHT_MOTOR_PIN_A, RIGHT_MOTOR_PIN_B)
-	motorL = Motor(io, LEFT_MOTOR_PIN_A, LEFT_MOTOR_PIN_B)
-	crab = Robot(motorR, motorL)
+    leftMotor = Motor(io, LEFT_MOTOR_PIN_A, LEFT_MOTOR_PIN_B)
+    rightMotor = Motor(io, RIGHT_MOTOR_PIN_A, RIGHT_MOTOR_PIN_B)
+    crabBot = Robot(leftMotor, rightMotor)
 
-	try:
-		crab.forward(ONE_METER_TIME, 1.0)
-		crab.right_turn()
-		crab.square()
-	except BaseException as ex:
-		# Report the error, but continue with the normal shutdown.
-		print("Ending due to exception: %s" % repr(ex))
-		traceback.print_exc()
-	
-	crab.stop_motors()
-	
+    try:
+        crabBot.forward(155 / 255, 155 / 255, 2.2)
+        crabBot.turn(0.5)
+        crabBot.forward(152 / 255, 155 / 255, 1.8)
+        crabBot.turn(0.55)
+        crabBot.forward(155 / 255, 153 / 255, 2.1)
+        crabBot.turn(0.52)
+        crabBot.forward(155 / 255, 155 / 255, 1.8)
+
+    except BaseException as ex:
+        # Report the error, but continue with the normal shutdown.
+        print("Ending due to exception: %s" % repr(ex))
+        traceback.print_exc()
+
+    finally:
+        crabBot.stop_motors(1)
+        io.stop()
+    
+
